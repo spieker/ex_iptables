@@ -1,0 +1,15 @@
+{
+  "coverage_options": {
+    "treat_no_relevant_lines_as_covered": true
+  },
+  "skip_files": [
+    "config",
+    "priv",
+    "rel",
+    "test",
+    "lib/sisko/application.ex",
+    "lib/sisko_web/endpoint.ex",
+    "lib/sisko_web/views/error_helpers.ex",
+    "lib/sisko_web.ex"
+  ]
+}

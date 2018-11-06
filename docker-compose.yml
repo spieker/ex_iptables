@@ -1,0 +1,26 @@
+version: '3'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile-dev
+    command: "mix phx.server"
+    privileged: true
+    ports:
+      - "4000:4000"
+    environment:
+      - MIX_ENV=dev
+    volumes:
+      - .:/app
+
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile-dev
+    command: "mix test"
+    privileged: true
+    environment:
+      - MIX_ENV=test
+    volumes:
+      - .:/app
