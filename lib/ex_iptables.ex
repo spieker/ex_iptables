@@ -89,9 +89,58 @@ defmodule ExIptables do
   Insert one or more rules in the selected chain as the given rule number. So,
   if the rule number is 1, the rule or rules are inserted at the head of the
   chain.
+
+  ## Example
+
+      iex> ExIptables.append("FORWARD", %ExIptables.Rule{source: "10.1.0.0/16", jump: "DROP"})
+      ...> ExIptables.append("FORWARD", %ExIptables.Rule{source: "10.3.0.0/16", jump: "DROP"})
+      ...> ExIptables.insert("FORWARD", 2, %ExIptables.Rule{source: "10.2.0.0/16", jump: "DROP"})
+      ...> ExIptables.list("FORWARD")
+      {:ok, %ExIptables.Chain{
+        name: "FORWARD",
+        rules: [
+          %ExIptables.Rule{
+            destination: nil,
+            fragment: nil,
+            goto: nil,
+            in_interface: nil,
+            jump: "DROP",
+            match: nil,
+            out_interface: nil,
+            protocol: nil,
+            set_counters: nil,
+            source: "10.1.0.0/16"
+          },
+          %ExIptables.Rule{
+            destination: nil,
+            fragment: nil,
+            goto: nil,
+            in_interface: nil,
+            jump: "DROP",
+            match: nil,
+            out_interface: nil,
+            protocol: nil,
+            set_counters: nil,
+            source: "10.2.0.0/16"
+          },
+          %ExIptables.Rule{
+            destination: nil,
+            fragment: nil,
+            goto: nil,
+            in_interface: nil,
+            jump: "DROP",
+            match: nil,
+            out_interface: nil,
+            protocol: nil,
+            set_counters: nil,
+            source: "10.3.0.0/16"
+          }
+        ]
+      }}
+
   """
   def insert(chain, rulenum, %Rule{} = rule),
-    do: @adapter.cmd(["--insert", chain, rulenum] ++ rule_to_args(rule))
+    do: @adapter.cmd(["--insert", chain, "#{rulenum}"] ++ rule_to_args(rule))
 
   @doc """
   Replace a rule in the selected chain. If the source and/or destination names
