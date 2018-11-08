@@ -90,6 +90,13 @@ defmodule ExIptables.Adapters.FakeAdapter.Helpers do
     |> Enum.zip()
     |> Enum.reduce(%Rule{}, fn
       {key, val}, rule ->
+        val =
+          case {key, val |> String.split("/", parts: 2) |> Enum.count()} do
+            {"--source", 1} -> "#{val}/32"
+            {"--destination", 1} -> "#{val}/32"
+            {_, _} -> val
+          end
+
         key =
           key
           |> String.slice(2..-1)

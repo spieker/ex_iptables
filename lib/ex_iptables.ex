@@ -20,22 +20,15 @@ defmodule ExIptables do
 
   ## Example
 
-      iex> {:ok, _} = ExIptables.append("FORWARD", %ExIptables.Rule{source: "10.0.0.0/8", jump: "DROP"})
+      iex> {:ok, _} = ExIptables.append("FORWARD", %Rule{source: "10.0.0.0/8", jump: "DROP"})
       ...> ExIptables.list("FORWARD")
-      {:ok, %ExIptables.Chain{name: "FORWARD", target: "ACCEPT", rules: [%ExIptables.Rule{
-        protocol: nil,
-        source: "10.0.0.0/8",
-        destination: nil,
-        match: nil,
-        jump: "DROP",
-        goto: nil,
-        in_interface: nil,
-        out_interface: nil,
-        fragment: nil,
-        set_counters: nil
-      }]}}
+      {:ok, %Chain{name: "FORWARD", target: "ACCEPT", rules: [%Rule{source: "10.0.0.0/8", jump: "DROP"}]}}
 
-      iex> ExIptables.append("MISSING", %ExIptables.Rule{source: "10.0.0.0/8", jump: "DROP"})
+      iex> {:ok, _} = ExIptables.append("FORWARD", %Rule{source: "10.10.10.10", destination: "10.10.10.20", jump: "DROP"})
+      ...> ExIptables.list("FORWARD")
+      {:ok, %Chain{name: "FORWARD", target: "ACCEPT", rules: [%Rule{source: "10.10.10.10/32", destination: "10.10.10.20/32", jump: "DROP"}]}}
+
+      iex> ExIptables.append("MISSING", %Rule{source: "10.0.0.0/8", jump: "DROP"})
       {:error, 1}
   """
   def append(chain, %Rule{} = rule), do: @adapter.cmd(["--append", chain] ++ rule_to_args(rule))
@@ -46,14 +39,14 @@ defmodule ExIptables do
 
   ## Example
 
-      iex> {:ok, _} = ExIptables.append("FORWARD", %ExIptables.Rule{source: "10.0.0.0/8", jump: "DROP"})
-      ...> ExIptables.check("FORWARD", %ExIptables.Rule{source: "10.0.0.0/8", jump: "DROP"})
+      iex> {:ok, _} = ExIptables.append("FORWARD", %Rule{source: "10.0.0.0/8", jump: "DROP"})
+      ...> ExIptables.check("FORWARD", %Rule{source: "10.0.0.0/8", jump: "DROP"})
       true
 
-      iex> ExIptables.check("FORWARD", %ExIptables.Rule{source: "10.0.0.0/8", jump: "DROP"})
+      iex> ExIptables.check("FORWARD", %Rule{source: "10.0.0.0/8", jump: "DROP"})
       false
 
-      iex> ExIptables.check("MISSING", %ExIptables.Rule{source: "10.0.0.0/8", jump: "DROP"})
+      iex> ExIptables.check("MISSING", %Rule{source: "10.0.0.0/8", jump: "DROP"})
       false
 
   """
@@ -69,17 +62,17 @@ defmodule ExIptables do
 
   ## Example
 
-      iex> {:ok, _} = ExIptables.append("FORWARD", %ExIptables.Rule{source: "10.0.0.0/8", jump: "DROP"})
-      ...> {:ok, %ExIptables.Chain{rules: rules}} = ExIptables.list("FORWARD")
+      iex> {:ok, _} = ExIptables.append("FORWARD", %Rule{source: "10.0.0.0/8", jump: "DROP"})
+      ...> {:ok, %Chain{rules: rules}} = ExIptables.list("FORWARD")
       ...> 1 = Enum.count(rules)
-      ...> {:ok, _} = ExIptables.delete("FORWARD", %ExIptables.Rule{source: "10.0.0.0/8", jump: "DROP"})
+      ...> {:ok, _} = ExIptables.delete("FORWARD", %Rule{source: "10.0.0.0/8", jump: "DROP"})
       ...> ExIptables.list("FORWARD")
-      {:ok, %ExIptables.Chain{name: "FORWARD", target: "ACCEPT", rules: []}}
+      {:ok, %Chain{name: "FORWARD", target: "ACCEPT", rules: []}}
 
-      iex> ExIptables.delete("FORWARD", %ExIptables.Rule{source: "10.0.0.0/8", jump: "DROP"})
+      iex> ExIptables.delete("FORWARD", %Rule{source: "10.0.0.0/8", jump: "DROP"})
       {:error, 1}
 
-      iex> ExIptables.delete("MISSING", %ExIptables.Rule{source: "10.0.0.0/8", jump: "DROP"})
+      iex> ExIptables.delete("MISSING", %Rule{source: "10.0.0.0/8", jump: "DROP"})
       {:error, 1}
 
   """
@@ -92,49 +85,16 @@ defmodule ExIptables do
 
   ## Example
 
-      iex> ExIptables.append("FORWARD", %ExIptables.Rule{source: "10.1.0.0/16", jump: "DROP"})
-      ...> ExIptables.append("FORWARD", %ExIptables.Rule{source: "10.3.0.0/16", jump: "DROP"})
-      ...> ExIptables.insert("FORWARD", 2, %ExIptables.Rule{source: "10.2.0.0/16", jump: "DROP"})
+      iex> ExIptables.append("FORWARD", %Rule{source: "10.1.0.0/16", jump: "DROP"})
+      ...> ExIptables.append("FORWARD", %Rule{source: "10.3.0.0/16", jump: "DROP"})
+      ...> ExIptables.insert("FORWARD", 2, %Rule{source: "10.2.0.0/16", jump: "DROP"})
       ...> ExIptables.list("FORWARD")
-      {:ok, %ExIptables.Chain{
+      {:ok, %Chain{
         name: "FORWARD",
         rules: [
-          %ExIptables.Rule{
-            destination: nil,
-            fragment: nil,
-            goto: nil,
-            in_interface: nil,
-            jump: "DROP",
-            match: nil,
-            out_interface: nil,
-            protocol: nil,
-            set_counters: nil,
-            source: "10.1.0.0/16"
-          },
-          %ExIptables.Rule{
-            destination: nil,
-            fragment: nil,
-            goto: nil,
-            in_interface: nil,
-            jump: "DROP",
-            match: nil,
-            out_interface: nil,
-            protocol: nil,
-            set_counters: nil,
-            source: "10.2.0.0/16"
-          },
-          %ExIptables.Rule{
-            destination: nil,
-            fragment: nil,
-            goto: nil,
-            in_interface: nil,
-            jump: "DROP",
-            match: nil,
-            out_interface: nil,
-            protocol: nil,
-            set_counters: nil,
-            source: "10.3.0.0/16"
-          }
+          %Rule{jump: "DROP", source: "10.1.0.0/16"},
+          %Rule{jump: "DROP", source: "10.2.0.0/16"},
+          %Rule{jump: "DROP", source: "10.3.0.0/16"}
         ]
       }}
 
@@ -157,9 +117,9 @@ defmodule ExIptables do
 
       iex> ExIptables.list()
       {:ok, [
-              %ExIptables.Chain{name: "FORWARD", rules: [], target: "ACCEPT"},
-              %ExIptables.Chain{name: "INPUT", rules: [], target: "ACCEPT"},
-              %ExIptables.Chain{name: "OUTPUT", rules: [], target: "ACCEPT"}
+              %Chain{name: "FORWARD", rules: [], target: "ACCEPT"},
+              %Chain{name: "INPUT", rules: [], target: "ACCEPT"},
+              %Chain{name: "OUTPUT", rules: [], target: "ACCEPT"}
             ]}
 
   """
@@ -174,7 +134,7 @@ defmodule ExIptables do
   ## Example
 
       iex> ExIptables.list("FORWARD")
-      {:ok, %ExIptables.Chain{name: "FORWARD", target: "ACCEPT", rules: []}}
+      {:ok, %Chain{name: "FORWARD", target: "ACCEPT", rules: []}}
 
       iex> ExIptables.list("MISSING")
       {:error, 1}
@@ -245,7 +205,7 @@ defmodule ExIptables do
 
       iex> ExIptables.policy("FORWARD", "DROP")
       ...> ExIptables.list("FORWARD")
-      {:ok, %ExIptables.Chain{name: "FORWARD", target: "DROP", rules: []}}
+      {:ok, %Chain{name: "FORWARD", target: "DROP", rules: []}}
 
       iex> ExIptables.policy("MISSING", "DROP")
       {:error, 1}
