@@ -14,6 +14,17 @@ defmodule ExIptables do
   def clear, do: @adapter.clear()
 
   @doc """
+  Returns the adapter currently used by the application.
+
+  ## Example
+
+      iex> ExIptables.adapter()
+      ExIptables.Adapters.FakeAdapter
+
+  """
+  def adapter, do: @adapter
+
+  @doc """
   Append a rule to the end of the selected chain. When the source and/or
   destination names resolve to more than one address, a rule will be added for
   each possible address combination.
