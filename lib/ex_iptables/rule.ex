@@ -3,14 +3,11 @@ defmodule ExIptables.Rule do
   Represents an iptables rule. Check the iptables man page for details:
   http://ipset.netfilter.org/iptables.man.html#lbAI
   """
-  defstruct protocol: nil,
-            source: nil,
-            destination: nil,
-            match: nil,
+  defstruct protocol: {false, nil},
+            source: {false, nil},
+            destination: {false, nil},
             jump: nil,
-            goto: nil,
-            in_interface: nil,
-            out_interface: nil,
-            fragment: nil,
-            set_counters: nil
+            in_interface: {false, nil},
+            out_interface: {false, nil},
+            rule: nil
 end

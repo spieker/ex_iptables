@@ -162,22 +162,5 @@ defmodule ExIptables.Adapters.FakeAdapter do
     |> Enum.join("\n")
   end
 
-  def rule_to_list(%Rule{} = rule) do
-    rule
-    |> Map.from_struct()
-    |> Enum.reduce([], fn
-      {_, nil}, res -> res
-      {:protocol, value}, res -> res ++ ["-p", value]
-      {:source, value}, res -> res ++ ["-s", value]
-      {:destination, value}, res -> res ++ ["-d", value]
-      {:match, value}, res -> res ++ ["-m", value]
-      {:jump, value}, res -> res ++ ["-j", value]
-      {:goto, value}, res -> res ++ ["-g", value]
-      {:in_interface, value}, res -> res ++ ["-i", value]
-      {:out_interface, value}, res -> res ++ ["-o", value]
-      {:fragment, value}, res -> res ++ ["-f", value]
-      {:set_counters, value}, res -> res ++ ["-c", value]
-    end)
-    |> Enum.join(" ")
-  end
+  def rule_to_list(%Rule{rule: rule}), do: rule
 end

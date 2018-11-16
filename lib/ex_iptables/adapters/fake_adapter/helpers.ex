@@ -1,6 +1,5 @@
 defmodule ExIptables.Adapters.FakeAdapter.Helpers do
-  alias ExIptables.Chain
-  alias ExIptables.Rule
+  alias ExIptables.{Chain, Parser, Rule}
 
   def chain(state, name) do
     case Map.get(state, name) do
@@ -83,27 +82,23 @@ defmodule ExIptables.Adapters.FakeAdapter.Helpers do
     end
   end
 
-  def args_to_rule(args) do
-    [_ | moved_args] = args
+  defp args_to_rule(args) do
+    {_, args} =
+      Enum.reduce(args, {nil, []}, fn
+        "-s", {nil, result} -> {:source, result ++ ["-s"]}
+        "-d", {nil, result} -> {:destination, result ++ ["-d"]}
+        value, {:source, result} -> {nil, result ++ [ip_to_cidr(value)]}
+        value, {:destination, result} -> {nil, result ++ [ip_to_cidr(value)]}
+        value, {_, result} -> {nil, result ++ [value]}
+      end)
 
-    [Enum.take_every(args, 2), Enum.take_every(moved_args, 2)]
-    |> Enum.zip()
-    |> Enum.reduce(%Rule{}, fn
-      {key, val}, rule ->
-        val =
-          case {key, val |> String.split("/", parts: 2) |> Enum.count()} do
-            {"--source", 1} -> "#{val}/32"
-            {"--destination", 1} -> "#{val}/32"
-            {_, _} -> val
-          end
+    Parser.parse_rule(args)
+  end
 
-        key =
-          key
-          |> String.slice(2..-1)
-          |> String.replace("-", "__")
-          |> String.to_atom()
-
-        Map.put(rule, key, val)
-    end)
+  defp ip_to_cidr(value) do
+    case value |> String.split("/", parts: 2) |> Enum.count() do
+      1 -> "#{value}/32"
+      _ -> value
+    end
   end
 end

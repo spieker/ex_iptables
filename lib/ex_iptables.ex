@@ -6,8 +6,7 @@ defmodule ExIptables do
 
   Use the `ExIptables.Adapters.FakeAdapter` for testing.
   """
-  alias ExIptables.Chain
-  alias ExIptables.Rule
+  alias ExIptables.{Parser, Rule}
 
   @adapter Application.get_env(:ex_iptables, :adapter, ExIptables.Adapters.CliAdapter)
 
@@ -31,18 +30,18 @@ defmodule ExIptables do
 
   ## Example
 
-      iex> {:ok, _} = ExIptables.append("FORWARD", %Rule{source: "10.0.0.0/8", jump: "DROP"})
+      iex> {:ok, _} = ExIptables.append("FORWARD", "-s 10.0.0.0/8 -j DROP")
       ...> ExIptables.list("FORWARD")
-      {:ok, %Chain{name: "FORWARD", target: "ACCEPT", rules: [%Rule{source: "10.0.0.0/8", jump: "DROP"}]}}
+      {:ok, %Chain{name: "FORWARD", target: "ACCEPT", rules: [%Rule{source: {false, "10.0.0.0/8"}, jump: "DROP", rule: "-s 10.0.0.0/8 -j DROP"}]}}
 
-      iex> {:ok, _} = ExIptables.append("FORWARD", %Rule{source: "10.10.10.10", destination: "10.10.10.20", jump: "DROP"})
+      iex> {:ok, _} = ExIptables.append("FORWARD", "-s 10.10.10.10 -d 10.10.10.20 -j DROP")
       ...> ExIptables.list("FORWARD")
-      {:ok, %Chain{name: "FORWARD", target: "ACCEPT", rules: [%Rule{source: "10.10.10.10/32", destination: "10.10.10.20/32", jump: "DROP"}]}}
+      {:ok, %Chain{name: "FORWARD", target: "ACCEPT", rules: [%Rule{source: {false, "10.10.10.10/32"}, destination: {false, "10.10.10.20/32"}, jump: "DROP", rule: "-s 10.10.10.10/32 -d 10.10.10.20/32 -j DROP"}]}}
 
-      iex> ExIptables.append("MISSING", %Rule{source: "10.0.0.0/8", jump: "DROP"})
+      iex> ExIptables.append("MISSING", "-s 10.0.0.0/8 -j DROP")
       {:error, 1}
   """
-  def append(chain, %Rule{} = rule), do: @adapter.cmd(["--append", chain] ++ rule_to_args(rule))
+  def append(chain, rule), do: @adapter.cmd(["--append", chain] ++ rule_to_args(rule))
 
   @doc """
   Check whether a rule matching the specification does exist in the selected
@@ -50,18 +49,18 @@ defmodule ExIptables do
 
   ## Example
 
-      iex> {:ok, _} = ExIptables.append("FORWARD", %Rule{source: "10.0.0.0/8", jump: "DROP"})
-      ...> ExIptables.check("FORWARD", %Rule{source: "10.0.0.0/8", jump: "DROP"})
+      iex> {:ok, _} = ExIptables.append("FORWARD", "-s 10.0.0.0/8 -j DROP")
+      ...> ExIptables.check("FORWARD", "-s 10.0.0.0/8 -j DROP")
       true
 
-      iex> ExIptables.check("FORWARD", %Rule{source: "10.0.0.0/8", jump: "DROP"})
+      iex> ExIptables.check("FORWARD", "-s 10.0.0.0/8 -j DROP")
       false
 
-      iex> ExIptables.check("MISSING", %Rule{source: "10.0.0.0/8", jump: "DROP"})
+      iex> ExIptables.check("MISSING", "-s 10.0.0.0/8 -j DROP")
       false
 
   """
-  def check(chain, %Rule{} = rule) do
+  def check(chain, rule) do
     case @adapter.cmd(["--check", chain] ++ rule_to_args(rule)) do
       {:ok, ""} -> true
       {:error, _} -> false
@@ -73,21 +72,21 @@ defmodule ExIptables do
 
   ## Example
 
-      iex> {:ok, _} = ExIptables.append("FORWARD", %Rule{source: "10.0.0.0/8", jump: "DROP"})
+      iex> {:ok, _} = ExIptables.append("FORWARD", "-s 10.0.0.0/8 -j DROP")
       ...> {:ok, %Chain{rules: rules}} = ExIptables.list("FORWARD")
       ...> 1 = Enum.count(rules)
-      ...> {:ok, _} = ExIptables.delete("FORWARD", %Rule{source: "10.0.0.0/8", jump: "DROP"})
+      ...> {:ok, _} = ExIptables.delete("FORWARD", "-s 10.0.0.0/8 -j DROP")
       ...> ExIptables.list("FORWARD")
       {:ok, %Chain{name: "FORWARD", target: "ACCEPT", rules: []}}
 
-      iex> ExIptables.delete("FORWARD", %Rule{source: "10.0.0.0/8", jump: "DROP"})
+      iex> ExIptables.delete("FORWARD", "-s 10.0.0.0/8 -j DROP")
       {:error, 1}
 
-      iex> ExIptables.delete("MISSING", %Rule{source: "10.0.0.0/8", jump: "DROP"})
+      iex> ExIptables.delete("MISSING", "-s 10.0.0.0/8 -j DROP")
       {:error, 1}
 
   """
-  def delete(chain, %Rule{} = rule), do: @adapter.cmd(["--delete", chain] ++ rule_to_args(rule))
+  def delete(chain, rule), do: @adapter.cmd(["--delete", chain] ++ rule_to_args(rule))
 
   @doc """
   Insert one or more rules in the selected chain as the given rule number. So,
@@ -96,21 +95,21 @@ defmodule ExIptables do
 
   ## Example
 
-      iex> ExIptables.append("FORWARD", %Rule{source: "10.1.0.0/16", jump: "DROP"})
-      ...> ExIptables.append("FORWARD", %Rule{source: "10.3.0.0/16", jump: "DROP"})
-      ...> ExIptables.insert("FORWARD", 2, %Rule{source: "10.2.0.0/16", jump: "DROP"})
+      iex> ExIptables.append("FORWARD", "-s 10.1.0.0/16 --jump DROP")
+      ...> ExIptables.append("FORWARD", "--source 10.3.0.0/16 -j DROP")
+      ...> ExIptables.insert("FORWARD", 2, "--source 10.2.0.0/16      --jump       DROP")
       ...> ExIptables.list("FORWARD")
       {:ok, %Chain{
         name: "FORWARD",
         rules: [
-          %Rule{jump: "DROP", source: "10.1.0.0/16"},
-          %Rule{jump: "DROP", source: "10.2.0.0/16"},
-          %Rule{jump: "DROP", source: "10.3.0.0/16"}
+          %Rule{jump: "DROP", source: {false, "10.1.0.0/16"}, rule: "-s 10.1.0.0/16 -j DROP"},
+          %Rule{jump: "DROP", source: {false, "10.2.0.0/16"}, rule: "-s 10.2.0.0/16 -j DROP"},
+          %Rule{jump: "DROP", source: {false, "10.3.0.0/16"}, rule: "-s 10.3.0.0/16 -j DROP"}
         ]
       }}
 
   """
-  def insert(chain, rulenum, %Rule{} = rule),
+  def insert(chain, rulenum, rule),
     do: @adapter.cmd(["--insert", chain, "#{rulenum}"] ++ rule_to_args(rule))
 
   @doc """
@@ -118,7 +117,7 @@ defmodule ExIptables do
   resolve to multiple addresses, the command will fail. Rules are numbered
   starting at 1.
   """
-  def replace(chain, rulenum, %Rule{} = rule),
+  def replace(chain, rulenum, rule),
     do: @adapter.cmd(["--replace", chain, rulenum] ++ rule_to_args(rule))
 
   @doc """
@@ -230,70 +229,10 @@ defmodule ExIptables do
   """
   def rename_chain(old_name, new_name), do: @adapter.cmd(["--rename-chain", old_name, new_name])
 
-  defp rule_to_args(%Rule{} = rule) do
-    rule
-    |> Map.from_struct()
-    |> Enum.reduce([], fn
-      {_, nil}, args ->
-        args
-
-      {key, val}, args ->
-        key =
-          key
-          |> Atom.to_string()
-          |> String.replace("_", "-")
-
-        args ++ ["--#{key}", val]
-    end)
-  end
+  defp rule_to_args(rule) when is_binary(rule), do: Parser.split_string(rule)
+  defp rule_to_args(rule) when is_list(rule), do: Parser.normalize_args(rule)
+  defp rule_to_args(%Rule{rule: rule}), do: rule_to_args(rule)
 
   def handle_list_rules_result({:error, _} = error), do: error
-
-  def handle_list_rules_result({:ok, value}) do
-    res =
-      value
-      |> String.split("\n")
-      |> Enum.map(&String.split(&1, ~r/ +/))
-      |> Enum.reduce(%{}, &reduce_list_line/2)
-      |> Map.values()
-
-    {:ok, res}
-  end
-
-  defp reduce_list_line(["-P", name, target], res) do
-    new_chain =
-      res
-      |> Map.get(name, %Chain{name: name})
-      |> Map.put(:target, target)
-
-    Map.put(res, name, new_chain)
-  end
-
-  defp reduce_list_line(["-A", name | args], res) do
-    [_ | moved_args] = args
-
-    rule =
-      [Enum.take_every(args, 2), Enum.take_every(moved_args, 2)]
-      |> Enum.zip()
-      |> Enum.reduce(%Rule{}, fn
-        {"-p", value}, rule -> %Rule{rule | protocol: value}
-        {"-s", value}, rule -> %Rule{rule | source: value}
-        {"-d", value}, rule -> %Rule{rule | destination: value}
-        {"-m", value}, rule -> %Rule{rule | match: value}
-        {"-j", value}, rule -> %Rule{rule | jump: value}
-        {"-g", value}, rule -> %Rule{rule | goto: value}
-        {"-i", value}, rule -> %Rule{rule | in_interface: value}
-        {"-o", value}, rule -> %Rule{rule | out_interface: value}
-        {"-f", value}, rule -> %Rule{rule | fragment: value}
-        {"-c", value}, rule -> %Rule{rule | set_counters: value}
-      end)
-
-    chain = Map.get(res, name, %Chain{name: name})
-    rules = Map.get(chain, :rules, [])
-    rules = rules ++ [rule]
-    new_chain = Map.put(chain, :rules, rules)
-    Map.put(res, name, new_chain)
-  end
-
-  defp reduce_list_line([""], res), do: res
+  def handle_list_rules_result({:ok, value}), do: Parser.parse(value)
 end
